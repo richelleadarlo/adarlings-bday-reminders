@@ -23,4 +23,4 @@ npm install
 npm run dev
 ```
 
-OR visit it live at [link]
+OR visit it live at https://adarlings-bday-reminders.vercel.app/
