@@ -82,7 +82,7 @@ const Index = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-3 sm:p-5 lg:p-8"
-      style={{ backgroundImage: "url('/bg-foreal.png')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}
+      style={{ backgroundImage: "url('/bg-foreal.png')", backgroundSize: "cover", backgroundPosition: "center" }}
     >
       <div className="w-full max-w-2xl">
         {/* Folder-style tabs */}
@@ -91,7 +91,7 @@ const Index = () => {
             <button
               key={tab}
               onClick={() => goTo(i)}
-              className="px-7 py-2.5 rounded-t-xl text-sm font-semibold tracking-widest transition-all text-card-blue-foreground overflow-hidden"
+              className="px-4 sm:px-7 py-2 sm:py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold tracking-wider sm:tracking-widest transition-all text-card-blue-foreground overflow-hidden"
               style={{
                 fontFamily: "var(--font-body)",
                 backgroundImage: currentPage === i
@@ -112,7 +112,7 @@ const Index = () => {
           <div
             className="relative card-texture rounded-2xl overflow-hidden shadow-[0_28px_70px_rgba(9,18,52,0.45),0_10px_26px_rgba(0,0,0,0.28)]"
             style={{
-              minHeight: "clamp(360px, 55vh, 520px)",
+              minHeight: "clamp(400px, 65vh, 560px)",
               backgroundImage: "linear-gradient(rgba(8,12,35,0.58), rgba(8,12,35,0.58)), url('/overlay-bg.png')",
               backgroundSize: "cover",
               backgroundPosition: "center",
@@ -128,7 +128,7 @@ const Index = () => {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="relative z-10 p-8 sm:p-10 lg:p-12"
+                className="relative z-10 p-4 sm:p-8 lg:p-10"
                 style={{ transformOrigin: direction > 0 ? "left center" : "right center" }}
               >
                 {currentPage === 0 && (
@@ -169,9 +169,9 @@ const Index = () => {
 
 /** Landing / hero page */
 const LandingContent = ({ count, onNext }: { count: number; onNext: () => void }) => (
-  <div className="flex flex-col items-center justify-center text-center min-h-[280px] gap-7">
+  <div className="flex flex-col items-center justify-center text-center min-h-[380px] gap-7">
     <h1 className="text-5xl sm:text-6xl font-display font-black italic leading-tight text-card-blue-foreground">
-      Adarlings
+      Adarlings ♡
     </h1>
     <p
       className="text-sm tracking-[0.25em] uppercase text-card-blue-foreground/70"
@@ -204,7 +204,7 @@ const FormContent = ({
   onNext: () => void;
   onPrev: () => void;
 }) => (
-  <div className="min-h-[280px] flex flex-col gap-6">
+  <div className="min-h-[380px] flex flex-col gap-6">
     <h2 className="text-3xl font-display font-bold italic text-card-blue-foreground text-center">
       Add a Birthday
     </h2>
@@ -235,11 +235,11 @@ const ListContent = ({
   onDelete: (id: string) => void;
   onPrev: () => void;
 }) => (
-  <div className="min-h-[280px] flex flex-col gap-4">
+  <div className="min-h-[380px] flex flex-col gap-4">
     <h2 className="text-3xl font-display font-bold italic text-card-blue-foreground text-center">
       Upcoming
     </h2>
-      <div className="mt-2 max-h-[34vh] overflow-y-auto pr-1 custom-scrollbar">
+      <div className="mt-2 max-h-[44vh] overflow-y-auto pr-1 custom-scrollbar">
       {birthdays.length === 0 ? (
         <p
           className="text-card-blue-foreground/50 text-center text-sm py-10"

@@ -30,13 +30,13 @@ const BirthdayCard = ({ birthday, onDelete }: BirthdayCardProps) => {
           : "bg-card-blue-foreground/8 hover:bg-card-blue-foreground/12"
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        <span className="text-xl flex-shrink-0">{isToday ? "🎉" : "🎂"}</span>
+      <div className="flex items-start gap-3 min-w-0">
+        <span className="text-xl flex-shrink-0 mt-0.5">{isToday ? "🎉" : "🎂"}</span>
         <div className="min-w-0">
-          <h3 className="font-display font-bold text-lg sm:text-xl truncate text-card-blue-foreground">
+          <h3 className="font-display font-bold text-base sm:text-lg break-words text-card-blue-foreground">
             {birthday.name}
           </h3>
-          <p className="text-sm text-card-blue-foreground/60" style={{ fontFamily: "var(--font-body)" }}>
+          <p className="text-xs sm:text-sm text-card-blue-foreground/60 break-words" style={{ fontFamily: "var(--font-body)" }}>
             {format(new Date(birthday.date), "MMM d, yyyy")} · {age} yrs
           </p>
         </div>
