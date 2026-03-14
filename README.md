@@ -10,7 +10,11 @@ Birthday Reminder is a simple web app that helps you keep track of important bir
 - Delete birthdays from the list
 - Data saved using **localStorage**
 
-
+## Built With
+- React
+- Vite
+- Tailwind CSS
+- LocalStorage
 
 ## Run the Project
 
