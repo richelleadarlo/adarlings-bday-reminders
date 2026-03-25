@@ -27,4 +27,5 @@ npm install
 npm run dev
 ```
 
-OR visit it live at https://adarlings-bday-reminders.vercel.app/
+---
+Developed by Richelle Adarlo <3
