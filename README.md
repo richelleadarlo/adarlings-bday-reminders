@@ -21,90 +21,70 @@ Visit the site live at: https://adarlings-bday-reminders.vercel.app/
 - Vite
 - Tailwind CSS
 - LocalStorage
-- Supabase (Database + Storage)
+- PocketBase (self-hosted backend + file storage)
 
-## Shared Albums Setup (Supabase)
+## Shared Albums Setup (PocketBase)
 
-The Albums tab uses Supabase so data is shared across all users.
+The Albums tab uses PocketBase so data and uploaded photos are shared across all visitors.
 
-1. Create a Supabase project.
-2. In SQL Editor, run:
-
-```sql
-create table if not exists public.albums (
-	id uuid primary key default gen_random_uuid(),
-	name text not null,
-	description text,
-	created_at timestamptz not null default now()
-);
-
-create table if not exists public.photos (
-	id uuid primary key default gen_random_uuid(),
-	album_id uuid not null references public.albums(id) on delete cascade,
-	caption text,
-	file_path text not null,
-	public_url text not null,
-	created_at timestamptz not null default now()
-);
-
-alter table public.albums enable row level security;
-alter table public.photos enable row level security;
-
-drop policy if exists "public read albums" on public.albums;
-create policy "public read albums" on public.albums
-for select to anon using (true);
-
-drop policy if exists "public insert albums" on public.albums;
-create policy "public insert albums" on public.albums
-for insert to anon with check (true);
-
-drop policy if exists "public delete albums" on public.albums;
-create policy "public delete albums" on public.albums
-for delete to anon using (true);
-
-drop policy if exists "public read photos" on public.photos;
-create policy "public read photos" on public.photos
-for select to anon using (true);
-
-drop policy if exists "public insert photos" on public.photos;
-create policy "public insert photos" on public.photos
-for insert to anon with check (true);
-
-drop policy if exists "public delete photos" on public.photos;
-create policy "public delete photos" on public.photos
-for delete to anon using (true);
-```
-
-3. Create a public Storage bucket named `album-photos`.
-4. Add these env vars to a `.env` file:
+1. Download PocketBase for your machine from the PocketBase releases page.
+2. Extract it somewhere local, then start it:
 
 ```bash
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+./pocketbase serve
 ```
 
-5. Add Storage policies for bucket `album-photos` so `anon` can read and upload:
+On Windows PowerShell, that is usually:
 
-```sql
-insert into storage.buckets (id, name, public)
-values ('album-photos', 'album-photos', true)
-on conflict (id) do update set public = true;
-
-drop policy if exists "public read album files" on storage.objects;
-create policy "public read album files" on storage.objects
-for select to anon
-using (bucket_id = 'album-photos');
-
-drop policy if exists "public upload album files" on storage.objects;
-create policy "public upload album files" on storage.objects
-for insert to anon
-with check (bucket_id = 'album-photos');
-
-drop policy if exists "public delete album files" on storage.objects;
-create policy "public delete album files" on storage.objects
-for delete to anon
-using (bucket_id = 'album-photos');
+```powershell
+.\pocketbase.exe serve
 ```
+
+3. Open the PocketBase admin UI, usually at `http://127.0.0.1:8090/_/`.
+4. Create the first admin account when prompted.
+5. Create two collections:
+
+### albums collection
+
+- Collection name: `albums`
+- Type: `Base`
+- Fields:
+	- `name` as text, required
+	- `description` as text, optional
+- API rules:
+	- List rule: leave empty for public access
+	- View rule: leave empty for public access
+	- Create rule: leave empty for public access
+	- Delete rule: leave empty for public access
+
+### photos collection
+
+- Collection name: `photos`
+- Type: `Base`
+- Fields:
+	- `album` as relation, required, single-select, linked to `albums`
+	- `caption` as text, optional
+	- `image` as file, required, max files = 1, recommended max size = 5MB to 10MB
+- API rules:
+	- List rule: leave empty for public access
+	- View rule: leave empty for public access
+	- Create rule: leave empty for public access
+	- Delete rule: leave empty for public access
+
+6. Add this env var to a `.env` file:
+
+```bash
+VITE_POCKETBASE_URL=http://127.0.0.1:8090
+```
+
+7. If your frontend runs on a different origin, add that origin to PocketBase CORS settings.
+8. Keep PocketBase running while developing, or deploy it to a small VPS if you want the albums online for others.
+
+Notes:
+- PocketBase automatically serves uploaded files from the `photos` collection, so there is no separate storage bucket setup.
+- Deleting a photo record removes its file automatically.
+- Deleting an album in this app deletes all related photo records first, then deletes the album.
+- The current setup is intentionally public. Anyone with the site link can create, upload, and delete unless you tighten the collection rules later.
 
 ## Run the Project
 

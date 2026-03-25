@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { pocketbase } from "@/lib/pocketbase";
 
 export interface Album {
   id: string;
@@ -16,61 +16,78 @@ export interface Photo {
   created_at: string;
 }
 
-function requireSupabase() {
-  if (!supabase) {
-    throw new Error("Supabase is not configured.");
+interface AlbumRecord {
+  id: string;
+  name: string;
+  description?: string;
+  created: string;
+}
+
+interface PhotoRecord {
+  id: string;
+  album: string;
+  caption?: string;
+  image: string;
+  created: string;
+}
+
+function requirePocketBase() {
+  if (!pocketbase) {
+    throw new Error("PocketBase is not configured.");
   }
-  return supabase;
+  return pocketbase;
+}
+
+function mapAlbum(record: AlbumRecord): Album {
+  return {
+    id: record.id,
+    name: record.name,
+    description: record.description?.trim() || null,
+    created_at: record.created,
+  };
+}
+
+function mapPhoto(client: ReturnType<typeof requirePocketBase>, record: PhotoRecord): Photo {
+  return {
+    id: record.id,
+    album_id: record.album,
+    caption: record.caption?.trim() || null,
+    file_path: record.image,
+    public_url: client.files.getUrl(record, record.image),
+    created_at: record.created,
+  };
 }
 
 export async function fetchAlbums(): Promise<Album[]> {
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("albums")
-    .select("id, name, description, created_at")
-    .order("created_at", { ascending: false });
+  const client = requirePocketBase();
+  const records = await client.collection("albums").getFullList<AlbumRecord>({
+    sort: "-created",
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+  return records.map(mapAlbum);
 }
 
 export async function createAlbum(input: {
   name: string;
   description?: string;
 }): Promise<Album> {
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("albums")
-    .insert({
-      name: input.name,
-      description: input.description?.trim() || null,
-    })
-    .select("id, name, description, created_at")
-    .single();
+  const client = requirePocketBase();
+  const record = await client.collection("albums").create<AlbumRecord>({
+    name: input.name,
+    description: input.description?.trim() || "",
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+  return mapAlbum(record);
 }
 
 export async function fetchPhotosByAlbum(albumId: string): Promise<Photo[]> {
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("photos")
-    .select("id, album_id, caption, file_path, public_url, created_at")
-    .eq("album_id", albumId)
-    .order("created_at", { ascending: false });
+  const client = requirePocketBase();
+  const records = await client.collection("photos").getFullList<PhotoRecord>({
+    filter: `album = "${albumId}"`,
+    sort: "-created",
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+  return records.map((record) => mapPhoto(client, record));
 }
 
 export async function uploadPhoto(input: {
@@ -78,100 +95,34 @@ export async function uploadPhoto(input: {
   file: File;
   caption?: string;
 }): Promise<Photo> {
-  const client = requireSupabase();
-  const safeName = input.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filePath = `${input.albumId}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+  const client = requirePocketBase();
+  const formData = new FormData();
 
-  const storageResult = await client.storage
-    .from("album-photos")
-    .upload(filePath, input.file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: input.file.type || undefined,
-    });
+  formData.append("album", input.albumId);
+  formData.append("caption", input.caption?.trim() || "");
+  formData.append("image", input.file);
 
-  if (storageResult.error) {
-    throw new Error(storageResult.error.message);
-  }
+  const record = await client.collection("photos").create<PhotoRecord>(formData);
 
-  const { data: publicData } = client.storage
-    .from("album-photos")
-    .getPublicUrl(filePath);
-
-  const { data, error } = await client
-    .from("photos")
-    .insert({
-      album_id: input.albumId,
-      caption: input.caption?.trim() || null,
-      file_path: filePath,
-      public_url: publicData.publicUrl,
-    })
-    .select("id, album_id, caption, file_path, public_url, created_at")
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+  return mapPhoto(client, record);
 }
 
 export async function deletePhoto(input: {
   photoId: string;
-  filePath: string;
 }): Promise<void> {
-  const client = requireSupabase();
-
-  const storageResult = await client.storage
-    .from("album-photos")
-    .remove([input.filePath]);
-
-  if (storageResult.error) {
-    throw new Error(storageResult.error.message);
-  }
-
-  const { error } = await client
-    .from("photos")
-    .delete()
-    .eq("id", input.photoId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  const client = requirePocketBase();
+  await client.collection("photos").delete(input.photoId);
 }
 
 export async function deleteAlbum(albumId: string): Promise<void> {
-  const client = requireSupabase();
+  const client = requirePocketBase();
+  const photos = await client.collection("photos").getFullList<PhotoRecord>({
+    filter: `album = "${albumId}"`,
+  });
 
-  const { data: photos, error: photosError } = await client
-    .from("photos")
-    .select("file_path")
-    .eq("album_id", albumId);
+  await Promise.all(
+    photos.map((photo) => client.collection("photos").delete(photo.id))
+  );
 
-  if (photosError) {
-    throw new Error(photosError.message);
-  }
-
-  const filePaths = (photos ?? [])
-    .map((photo) => photo.file_path)
-    .filter(Boolean);
-
-  if (filePaths.length > 0) {
-    const storageResult = await client.storage
-      .from("album-photos")
-      .remove(filePaths);
-
-    if (storageResult.error) {
-      throw new Error(storageResult.error.message);
-    }
-  }
-
-  const { error } = await client
-    .from("albums")
-    .delete()
-    .eq("id", albumId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await client.collection("albums").delete(albumId);
 }

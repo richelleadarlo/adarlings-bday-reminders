@@ -13,7 +13,7 @@ import {
   fetchPhotosByAlbum,
   uploadPhoto,
 } from "@/lib/albums";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isPocketBaseConfigured } from "@/lib/pocketbase";
 
 const AlbumSection = () => {
   const queryClient = useQueryClient();
@@ -26,7 +26,7 @@ const AlbumSection = () => {
   const albumsQuery = useQuery({
     queryKey: ["albums"],
     queryFn: fetchAlbums,
-    enabled: isSupabaseConfigured,
+    enabled: isPocketBaseConfigured,
   });
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const AlbumSection = () => {
   const photosQuery = useQuery({
     queryKey: ["album-photos", selectedAlbumId],
     queryFn: () => fetchPhotosByAlbum(selectedAlbumId as string),
-    enabled: isSupabaseConfigured && Boolean(selectedAlbumId),
+    enabled: isPocketBaseConfigured && Boolean(selectedAlbumId),
   });
 
   const createAlbumMutation = useMutation({
@@ -145,22 +145,22 @@ const AlbumSection = () => {
     deleteAlbumMutation.mutate(album.id);
   };
 
-  const onDeletePhoto = (photoId: string, filePath: string) => {
+  const onDeletePhoto = (photoId: string) => {
     const confirmed = window.confirm("Delete this photo? This cannot be undone.");
 
     if (!confirmed) {
       return;
     }
 
-    deletePhotoMutation.mutate({ photoId, filePath });
+    deletePhotoMutation.mutate({ photoId });
   };
 
-  if (!isSupabaseConfigured) {
+  if (!isPocketBaseConfigured) {
     return (
       <div className="rounded-xl border border-card-blue-foreground/25 bg-card-blue-foreground/10 p-4 text-card-blue-foreground/85">
         <h3 className="text-xl font-display font-bold italic">Albums need backend setup</h3>
         <p className="mt-2 text-sm" style={{ fontFamily: "var(--font-body)" }}>
-          Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file to enable shared albums and uploads.
+          Add VITE_POCKETBASE_URL in a .env file to enable shared albums and uploads.
         </p>
       </div>
     );
@@ -210,6 +210,7 @@ const AlbumSection = () => {
               }`}
             >
               <button
+                type="button"
                 onClick={() => setSelectedAlbumId(album.id)}
                 className="min-w-0 flex-1 text-left"
                 style={{ fontFamily: "var(--font-body)" }}
@@ -303,7 +304,7 @@ const AlbumSection = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => onDeletePhoto(photo.id, photo.file_path)}
+                  onClick={() => onDeletePhoto(photo.id)}
                   disabled={deletePhotoMutation.isPending}
                   className="absolute right-2 top-2 rounded-full bg-[rgba(8,12,35,0.72)] p-1.5 text-card-blue-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50"
                   aria-label="Delete photo"
