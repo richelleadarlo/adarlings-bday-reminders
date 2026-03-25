@@ -2,6 +2,10 @@
 
 Birthday Reminder is a simple web app that helps you keep track of important birthdays so you never miss a celebration again. Add names and birthdates, and the app will automatically show upcoming birthdays sorted by the soonest date.
 
+Visit the site live at: https://adarlings-bday-reminders.vercel.app/
+
+![overview screenshot](public/overview.png)
+
 ##  Features
 - Add a person's **name and birthday**
 - View a list of **upcoming birthdays**
