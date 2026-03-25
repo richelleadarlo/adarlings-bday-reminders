@@ -11,8 +11,9 @@ import {
 } from "@/lib/birthdays";
 import BirthdayForm from "@/components/BirthdayForm";
 import BirthdayList from "@/components/BirthdayList";
+import AlbumSection from "@/components/AlbumSection";
 
-const tabs = ["HI", "ADD", "BIRTHDAYS"] as const;
+const tabs = ["HI", "ADD", "BIRTHDAYS", "ALBUMS"] as const;
 
 const Index = () => {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
@@ -53,7 +54,7 @@ const Index = () => {
   };
 
   const nextPage = () => {
-    if (currentPage < 2) goTo(currentPage + 1);
+    if (currentPage < tabs.length - 1) goTo(currentPage + 1);
   };
 
   const prevPage = () => {
@@ -140,6 +141,7 @@ const Index = () => {
                 {currentPage === 2 && (
                   <ListContent birthdays={birthdays} onDelete={handleDelete} onPrev={prevPage} />
                 )}
+                {currentPage === 3 && <AlbumsContent />}
               </motion.div>
             </AnimatePresence>
 
@@ -154,7 +156,7 @@ const Index = () => {
               </button>
               <button
                 onClick={nextPage}
-                disabled={currentPage === 2}
+                disabled={currentPage === tabs.length - 1}
                 className="p-2 rounded-full text-card-blue-foreground/60 hover:text-card-blue-foreground disabled:opacity-0 transition-all hover:bg-card-blue-foreground/10"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -250,6 +252,24 @@ const ListContent = ({
       ) : (
         <BirthdayList birthdays={birthdays} onDelete={onDelete} />
       )}
+    </div>
+  </div>
+);
+
+/** Albums page */
+const AlbumsContent = () => (
+  <div className="min-h-[380px] flex flex-col gap-4">
+    <h2 className="text-3xl font-display font-bold italic text-card-blue-foreground text-center">
+      Shared Albums
+    </h2>
+    <p
+      className="text-card-blue-foreground/60 text-center text-sm"
+      style={{ fontFamily: "var(--font-body)" }}
+    >
+      Create albums and upload photos everyone can view from this site link.
+    </p>
+    <div className="mt-1">
+      <AlbumSection />
     </div>
   </div>
 );
