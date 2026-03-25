@@ -115,3 +115,63 @@ export async function uploadPhoto(input: {
 
   return data;
 }
+
+export async function deletePhoto(input: {
+  photoId: string;
+  filePath: string;
+}): Promise<void> {
+  const client = requireSupabase();
+
+  const storageResult = await client.storage
+    .from("album-photos")
+    .remove([input.filePath]);
+
+  if (storageResult.error) {
+    throw new Error(storageResult.error.message);
+  }
+
+  const { error } = await client
+    .from("photos")
+    .delete()
+    .eq("id", input.photoId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function deleteAlbum(albumId: string): Promise<void> {
+  const client = requireSupabase();
+
+  const { data: photos, error: photosError } = await client
+    .from("photos")
+    .select("file_path")
+    .eq("album_id", albumId);
+
+  if (photosError) {
+    throw new Error(photosError.message);
+  }
+
+  const filePaths = (photos ?? [])
+    .map((photo) => photo.file_path)
+    .filter(Boolean);
+
+  if (filePaths.length > 0) {
+    const storageResult = await client.storage
+      .from("album-photos")
+      .remove(filePaths);
+
+    if (storageResult.error) {
+      throw new Error(storageResult.error.message);
+    }
+  }
+
+  const { error } = await client
+    .from("albums")
+    .delete()
+    .eq("id", albumId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

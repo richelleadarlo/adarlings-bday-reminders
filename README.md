@@ -58,6 +58,10 @@ drop policy if exists "public insert albums" on public.albums;
 create policy "public insert albums" on public.albums
 for insert to anon with check (true);
 
+drop policy if exists "public delete albums" on public.albums;
+create policy "public delete albums" on public.albums
+for delete to anon using (true);
+
 drop policy if exists "public read photos" on public.photos;
 create policy "public read photos" on public.photos
 for select to anon using (true);
@@ -65,6 +69,10 @@ for select to anon using (true);
 drop policy if exists "public insert photos" on public.photos;
 create policy "public insert photos" on public.photos
 for insert to anon with check (true);
+
+drop policy if exists "public delete photos" on public.photos;
+create policy "public delete photos" on public.photos
+for delete to anon using (true);
 ```
 
 3. Create a public Storage bucket named `album-photos`.
@@ -91,6 +99,11 @@ drop policy if exists "public upload album files" on storage.objects;
 create policy "public upload album files" on storage.objects
 for insert to anon
 with check (bucket_id = 'album-photos');
+
+drop policy if exists "public delete album files" on storage.objects;
+create policy "public delete album files" on storage.objects
+for delete to anon
+using (bucket_id = 'album-photos');
 ```
 
 ## Run the Project

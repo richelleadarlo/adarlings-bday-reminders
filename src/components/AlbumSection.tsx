@@ -1,12 +1,14 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, FolderPlus } from "lucide-react";
+import { ImagePlus, FolderPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Album,
   createAlbum,
+  deleteAlbum,
+  deletePhoto,
   fetchAlbums,
   fetchPhotosByAlbum,
   uploadPhoto,
@@ -82,6 +84,30 @@ const AlbumSection = () => {
     },
   });
 
+  const deleteAlbumMutation = useMutation({
+    mutationFn: deleteAlbum,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["albums"] });
+      await queryClient.invalidateQueries({ queryKey: ["album-photos"] });
+      setSelectedAlbumId(null);
+      toast.success("Album deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Unable to delete album.");
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: deletePhoto,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["album-photos", selectedAlbumId] });
+      toast.success("Photo deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Unable to delete photo.");
+    },
+  });
+
   const onCreateAlbum = (e: FormEvent) => {
     e.preventDefault();
     if (!albumName.trim()) {
@@ -105,6 +131,28 @@ const AlbumSection = () => {
       file,
       caption,
     });
+  };
+
+  const onDeleteAlbum = (album: Album) => {
+    const confirmed = window.confirm(
+      `Delete album "${album.name}" and all of its photos? This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteAlbumMutation.mutate(album.id);
+  };
+
+  const onDeletePhoto = (photoId: string, filePath: string) => {
+    const confirmed = window.confirm("Delete this photo? This cannot be undone.");
+
+    if (!confirmed) {
+      return;
+    }
+
+    deletePhotoMutation.mutate({ photoId, filePath });
   };
 
   if (!isSupabaseConfigured) {
@@ -153,34 +201,63 @@ const AlbumSection = () => {
             <p className="text-sm text-card-blue-foreground/60">Create your first album.</p>
           )}
           {albumsQuery.data?.map((album: Album) => (
-            <button
+            <div
               key={album.id}
-              onClick={() => setSelectedAlbumId(album.id)}
-              className={`w-full rounded-lg px-3 py-2 text-left transition-colors ${
+              className={`flex items-start gap-2 rounded-lg px-3 py-2 transition-colors ${
                 selectedAlbumId === album.id
                   ? "bg-card-blue-foreground/25 text-card-blue-foreground"
                   : "bg-card-blue-foreground/10 text-card-blue-foreground/80 hover:bg-card-blue-foreground/20"
               }`}
-              style={{ fontFamily: "var(--font-body)" }}
             >
-              <p className="font-semibold truncate">{album.name}</p>
-              {album.description && (
-                <p className="text-xs opacity-75 truncate">{album.description}</p>
-              )}
-            </button>
+              <button
+                onClick={() => setSelectedAlbumId(album.id)}
+                className="min-w-0 flex-1 text-left"
+                style={{ fontFamily: "var(--font-body)" }}
+              >
+                <p className="font-semibold truncate">{album.name}</p>
+                {album.description && (
+                  <p className="text-xs opacity-75 truncate">{album.description}</p>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteAlbum(album)}
+                disabled={deleteAlbumMutation.isPending}
+                className="rounded-md p-1 text-card-blue-foreground/70 hover:bg-card-blue-foreground/15 hover:text-card-blue-foreground disabled:opacity-50"
+                aria-label={`Delete ${album.name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           ))}
         </div>
       </aside>
 
       <section className="rounded-xl border border-card-blue-foreground/25 bg-card-blue-foreground/10 p-4">
-        <h3 className="text-xl font-display font-bold italic text-card-blue-foreground">
-          {selectedAlbum ? selectedAlbum.name : "Select an album"}
-        </h3>
-        {selectedAlbum?.description && (
-          <p className="mt-1 text-sm text-card-blue-foreground/70" style={{ fontFamily: "var(--font-body)" }}>
-            {selectedAlbum.description}
-          </p>
-        )}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-display font-bold italic text-card-blue-foreground">
+              {selectedAlbum ? selectedAlbum.name : "Select an album"}
+            </h3>
+            {selectedAlbum?.description && (
+              <p className="mt-1 text-sm text-card-blue-foreground/70" style={{ fontFamily: "var(--font-body)" }}>
+                {selectedAlbum.description}
+              </p>
+            )}
+          </div>
+          {selectedAlbum && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onDeleteAlbum(selectedAlbum)}
+              disabled={deleteAlbumMutation.isPending}
+              className="border-card-blue-foreground/30 bg-card-blue-foreground/10 text-card-blue-foreground hover:bg-card-blue-foreground/20"
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete Album
+            </Button>
+          )}
+        </div>
 
         <form onSubmit={onUploadPhoto} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
           <Input
@@ -216,7 +293,7 @@ const AlbumSection = () => {
             {photosQuery.data?.map((photo) => (
               <figure
                 key={photo.id}
-                className="rounded-lg overflow-hidden border border-card-blue-foreground/30 bg-card-blue-foreground/15"
+                className="group relative rounded-lg overflow-hidden border border-card-blue-foreground/30 bg-card-blue-foreground/15"
               >
                 <img
                   src={photo.public_url}
@@ -224,6 +301,15 @@ const AlbumSection = () => {
                   loading="lazy"
                   className="h-32 w-full object-cover"
                 />
+                <button
+                  type="button"
+                  onClick={() => onDeletePhoto(photo.id, photo.file_path)}
+                  disabled={deletePhotoMutation.isPending}
+                  className="absolute right-2 top-2 rounded-full bg-[rgba(8,12,35,0.72)] p-1.5 text-card-blue-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-50"
+                  aria-label="Delete photo"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
                 {photo.caption && (
                   <figcaption
                     className="px-2 py-1 text-xs text-card-blue-foreground/80 truncate"
